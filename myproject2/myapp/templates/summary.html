@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load custom_tags %}
+
+{% block title %}集計結果{% endblock %}
+
+{% block content %}
+<style>
+ .angled-header {
+    position: relative;
+    height: 50px;
+    width: 30px;
+    word-break: break-all;
+    padding: 0;
+    overflow-wrap: break-word;
+  }
+
+  .angled-header span {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    transform: rotate(deg);
+    transform-origin: bottom left;
+    white-space: nowrap;
+    font-size: 12px;
+  }
+
+  .angled-table th:first-child {
+    vertical-align: bottom;
+    text-align: center;
+    position: relative;
+  }
+
+  .rotate-header {
+    transform: rotate(deg);
+    transform-origin: bottom left;
+    white-space: nowrap;
+    display: inline-block;
+    height: 50px;
+    width: 50px;
+    word-break: break-all;
+    padding: 0;
+    margin-left: -10px;
+    margin-bottom: -10px;
+    overflow-wrap: break-word;
+  }
+
+</style>
+
+<h2 class="mb-4">品名 × 工程別の集計一覧</h2>
+<a href="{% url 'upload' %}" class="btn btn-primary">アップロード画面に戻る</a>
+<br>
+
+<div class="scroll-wrapper">
+  <table class="table table-bordered angled-table">
+    <thead>
+      <tr>
+        {% for col in display_headers %}
+          {% if forloop.first %}
+            <th style="word-break: break-all;">{{ col }}</th>
+          {% else %}
+            <th class="angled-header">
+              <div class="rotate-header" title="{{ col }}">{{ col }}</div>
+            </th>
+          {% endif %}
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in pivot_data %}
+      <tr>
+        {% for col in column_headers %}
+          {% if forloop.first %}
+            <td style="text-align: center;">{{ row|get_item:col }}</td>
+          {% else %}
+            <td style="min-width: 80px; text-align: right;">{{ row|get_item:col }}</td>
+          {% endif %}
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
