@@ -5,79 +5,119 @@
 
 {% block content %}
 <style>
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  .scroll-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    margin: 0;
+    padding: 0;
+    text-align: left;
+  }
+
+  .angled-table {
+    display: inline-block;
+    margin: 0;
+    border-collapse: collapse;
+  }
+
+  .angled-table th:not(:first-child) {
+    background-color: #C1B7A4;
+    color: #333;
+  }
+
+  .angled-table th,
+  .angled-table td {
+    border: 1px solid #cccc;
+    padding: 4px 8px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .angled-table td:first-child,
+  .angled-table th:first-child {
+    background-color: #C1B7A4;
+    font-weight: bold;
+    min-width: 100px;
+  }
+
+  .sticky-header {
+    position: sticky;
+    top: 0;
+    background-color: #f9f9f9;
+    z-index: 5;
+  }
+
+  .sticky-col {
+    position: sticky;
+    left: 0px;
+    background-color: #f9f9f9;
+    z-index: 5;
+  }
+
  .angled-header {
     position: relative;
     height: 50px;
     width: 30px;
-    word-break: break-all;
     padding: 0;
-    overflow-wrap: break-word;
-  }
-
-  .angled-header span {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    transform: rotate(deg);
-    transform-origin: bottom left;
-    white-space: nowrap;
-    font-size: 12px;
-  }
-
-  .angled-table th:first-child {
-    vertical-align: bottom;
-    text-align: center;
-    position: relative;
+    overflow: visible;
   }
 
   .rotate-header {
-    transform: rotate(deg);
     transform-origin: bottom left;
-    white-space: nowrap;
+    white-space: normal;
     display: inline-block;
-    height: 50px;
-    width: 50px;
-    word-break: break-all;
+    height: 30px;
+    width: 70px;
+    text-align: center;
+    word-break: break-word;
     padding: 0;
-    margin-left: -10px;
-    margin-bottom: -10px;
-    overflow-wrap: break-word;
+    overflow-wrap: anywhere;
   }
 
 </style>
-
-<h2 class="mb-4">品名 × 工程別の集計一覧</h2>
-<a href="{% url 'upload' %}" class="btn btn-primary">アップロード画面に戻る</a>
-<br>
-
+<div class="text-center">
+  <div class="btn-group btn-group-lg" role="group" aria-label="Large button group">
+    <a class="btn btn-outline-secondary" href="{% url 'arrayup' %}">アップロード画面へ</a>
+    <a class="btn btn-outline-secondary" href="{% url 'top' %}">Top画面へ</a>
+  </div>
+</div>
+<h2 class="mb-4">アレイ集計一覧表</h2>
 <div class="scroll-wrapper">
   <table class="table table-bordered angled-table">
     <thead>
       <tr>
         {% for col in display_headers %}
           {% if forloop.first %}
-            <th style="word-break: break-all;">{{ col }}</th>
+            <th class="sticky-col sticky-header" style="word-break: break-all;">{{ col }}</th>
           {% else %}
-            <th class="angled-header">
+            <th class="sticky-header angled-header">
               <div class="rotate-header" title="{{ col }}">{{ col }}</div>
             </th>
           {% endif %}
         {% endfor %}
       </tr>
     </thead>
-    <tbody>
+    <body>
       {% for row in pivot_data %}
       <tr>
         {% for col in column_headers %}
           {% if forloop.first %}
-            <td style="text-align: center;">{{ row|get_item:col }}</td>
+            <td class="sticky-col" style="text-align: center;">{{ row|get_item:col }}</td>
           {% else %}
             <td style="min-width: 80px; text-align: right;">{{ row|get_item:col }}</td>
           {% endif %}
         {% endfor %}
       </tr>
       {% endfor %}
-    </tbody>
+    </body>
   </table>
 </div>
 {% endblock %}

@@ -9,9 +9,13 @@ import codecs
 from django.db import transaction
 import logging
 import pandas as pd
+from django.views.generic import TemplateView
 
 
 logger = logging.getLogger(__name__)
+
+class TopView(TemplateView):
+    template_name = "top.html"
 
 def upload_file(request):
     message = ""
@@ -21,9 +25,19 @@ def upload_file(request):
     if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
-            try:
-                with transaction.atomic():
-                    ItemProcess.objects.all().delete()
+            file = request.FILES['file']
+            print("アップロード内容:",file.name,file.content_type)
+            if file.name.lower().endswith('.txt'):
+                try:
+                    lines = codecs.iterdecode(file,'utf-8')
+                    for line in lines:
+                        print("line:", line)
+                except Exception as e:
+                    print("読み込みエラー", e)
+
+                try:
+                    with transaction.atomic():
+                        ItemProcess.objects.all().delete()
                     file = request.FILES['file']
                     filename = file.name.lower()
                     DEPARTMENTS = ['PA', 'PB', 'PD', 'RA', 'RB', 'RC']
@@ -93,7 +107,7 @@ def upload_file(request):
                             )
                             upload_count += 1
 
-                    elif filename.endswith('.txt') or filename.endswith('.csv'):
+                    elif filename.endswith('.txt'):
                         lines = codecs.iterdecode(file, 'utf-8')
                         for i, line in enumerate(lines):
                             if i == 0:
@@ -149,15 +163,15 @@ def upload_file(request):
                             upload_count += 1
 
                     else:
-                        message = "対応しているファイル形式は .xlsx, .csv, .txt です。"
+                        message = "対応しているファイル形式は .xlsx, .txt です。"
 
                         logger.warning(f"Unsupported file format uploaded: {filename}")
                     last_uploaded_at = timezone.now()
                     message = f"アップロード完了。{upload_count} 件のデータを取込みました。"
 
-            except Exception as e:
-                logger.error(f"Upload processing error: {e}")
-                message = "アップロード処理中にエラーが発生しました。"
+                except Exception as e:
+                    logger.error(f"Upload processing error: {e}")
+                    message = "アップロード処理中にエラーが発生しました。"
 
         else:
             form = UploadFileForm()
@@ -181,11 +195,78 @@ def upload_file(request):
 def  summary_view(request):
     ps = ItemProcess.objects.values('item_name', 'process_name', 'board_total_qty')
     df = pd.DataFrame.from_records(ps)
-    pivot_table = df.pivot_table(index='item_name', columns='process_name', values='board_total_qty', aggfunc='sum', fill_value=0)
-    pivot_data = pivot_table.reset_index().to_dict(orient='records')
-    column_headers = ['item_name'] + list(pivot_table.columns)
-    display_headers = ['品名'] + list(pivot_table.columns)
+    pivot_table = df.pivot_table(
+        index='item_name', 
+        columns='process_name',
+        values='board_total_qty', 
+        aggfunc='sum',
+        fill_value=0
+    )
 
+    process_alias_map = {
+        '外し／詰め':'外し',
+        '受け入れ':'受入',
+        '基板変形検査':'反り',
+        '基板スナップ割り':'ﾌﾞﾚｰｸ',
+        'ブレーク':'ﾌﾞﾚｰｸ',
+        '（外し／詰め）':'外し',
+        '超音波ドライ洗浄(表)':'ﾄﾞﾗｲ洗浄',
+        'ＱＣ外観チェック':'QC',
+        'ロット構成':'ﾛｯﾄ構成',
+        '出荷目視検査':'目視',
+        '画像ﾎﾟｲﾝﾄ検査（表）':'画像',
+        'ＤＭＣ印字':'DMC',
+        'ＤＭＣ画像検査(表裏)':'画像',
+        '基板外周検査(表)':'外周',
+        '基板外周検査(裏)':'外周',
+        '３Ｄ基板画像検査':'3D',
+        '出荷目視／混入検査':'目視',
+        '基板出荷画検':'目視',
+        '基板画検 (表裏必須)':'画像',
+        '基板出荷画検寸法必須':'画寸',
+        '基板列削除':'列削除',
+        '処置ﾎﾟｲﾝﾄ検査':'P',
+        '指示事項伝達':'指示書',
+        '基板外周抜取(70倍)':'外周抜',
+        'AU付着抜取り検査':'Au',
+        'QCﾛｯﾄ1':'ﾛｯﾄ1',
+    }
+
+    ordered_process = [
+        '外し／詰め',
+        '受け入れ',
+        '基板変形検査',
+        '基板スナップ割り',
+        'ブレーク',
+        '（外し／詰め）',
+        '超音波ドライ洗浄(表)',
+        'ＱＣ外観チェック',
+        'ロット構成',
+        '出荷目視検査',
+        '画像ﾎﾟｲﾝﾄ検査（表）',
+        'ＤＭＣ印字',
+        'ＤＭＣ画像検査(表裏)',
+        '基板外周検査(表)',
+        '基板外周検査(裏)',
+        '３Ｄ基板画像検査',
+        '出荷目視／混入検査',
+        '基板出荷画検',
+        '基板画検 (表裏必須)',
+        '基板出荷画検寸法必須',
+        '基板列削除',
+        '処置ﾎﾟｲﾝﾄ検査',
+        '指示事項伝達',
+        '基板外周抜取(70倍)',
+        'AU付着抜取り検査',
+        'QCﾛｯﾄ1',
+    ]
+
+    nonzero_columns = [col for col in ordered_process if col in pivot_table.columns]
+    pivot_table = pivot_table.reindex(columns=nonzero_columns, fill_value=0)
+    pivot_data = pivot_table.reset_index().to_dict(orient='records')
+    column_headers = ['item_name'] + nonzero_columns
+    display_headers = ['品名'] + [process_alias_map.get(col, col) for col in nonzero_columns]
+ 
     return render(request, 'summary.html', {
         'pivot_data': pivot_data,
         'column_headers': column_headers,

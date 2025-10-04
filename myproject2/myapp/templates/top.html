@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{%block title %}トップ画面{% endblock %}
+{% block content %}
+
+<div class="container" style="max-width: 400px;">
+    <h1 class="text-center" style="color: rgb(87, 96, 96);">SMD実績管理</hi>
+    <br>
+    <br>
+    <br>
+    <div class="d-flex flex-column gap-3 mt-4">
+        <a class="btn btn-outline-secondary btn-lg" href="{% url 'arrayup' %}">アレイ実績集計へ</a>
+        <a class="btn btn-outline-secondary btn-lg" href="{% url 'admin:index'%}">管理画面へ</a>
+    </div>
+</div>
+{% endblock %}
